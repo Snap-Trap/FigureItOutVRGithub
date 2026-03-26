@@ -1,34 +1,44 @@
 using UnityEngine;
-using UnityEngine.Networking;
+using Unity.Netcode;
+using Unity.Services.Matchmaker.Models;
 
 public class DoorController : NetworkBehaviour
 {
-    private NetworkVariable<bool> doorDestroyed = new NetworkVariable<bool>(
-        false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server
-    );
+    private NetworkVariable<bool> doorOpened = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public override void OnNetworkSpawn()
     {
-        doorDestroyed.OnValueChanged += (_, isDestroyed) =>
+        doorOpened.OnValueChanged += OnDoorStateChanged;
+
+        if (doorOpened.Value)
         {
-            if (isDestroyed) gameObject.SetActive(false);
-        };
+            gameObject.SetActive(false);
+        }
+    }
+
+    private void OnDoorStateChanged(bool previous, bool current)
+    {
+        if (current)
+        {
+            gameObject.SetActive(false);
+        }
     }
 
     public void OpenDoor()
     {
-        if (IsServer) DestroyDoorServerRpc();
-        else RequestDestroyServerRpc();
+        if (IsServer) SetDoorOpenedServerRpc();
+        else RequestOpenServerRpc();
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    private void RequestDestroyServerRpc() => DestroyDoorServerRpc();
-
     [ServerRpc]
-    private void DestroyDoorServerRpc()
+    private void RequestOpenServerRpc() => SetDoorOpenedServerRpc();
+    [ServerRpc]
+    private void SetDoorOpenedServerRpc()
     {
-        doorDestroyed.Value = true;
+        doorOpened.Value = true;
+    }
+    public override void OnDestroy()
+    {
+        doorOpened.OnValueChanged -= OnDoorStateChanged;
     }
 }

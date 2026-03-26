@@ -1,6 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 
 public class KeypadScript : MonoBehaviour
 {
@@ -8,9 +9,9 @@ public class KeypadScript : MonoBehaviour
     private List<int> correctAnswer = new List<int>();
 
     public GameObject door;
-    public TextMeshPro displayText;
+    public TextMeshProUGUI displayText;
 
-    private bool locked = false;
+    private bool doorLocked = false;
 
     private void Start()
     {
@@ -22,46 +23,49 @@ public class KeypadScript : MonoBehaviour
     {
         correctAnswer.Clear();
         for (int i = 0; i < 3; i++)
+        {
             correctAnswer.Add(Random.Range(1, 10));
+        }
 
         Debug.Log($"Correct Answer: {correctAnswer[0]}-{correctAnswer[1]}-{correctAnswer[2]}");
     }
 
     public void PressKey(int number)
     {
-        if (locked || inputAnswer.Count >= 3) return;
+        if (doorLocked || inputAnswer.Count >= 3) return;
 
         inputAnswer.Add(number);
         UpdateDisplay();
 
         if (inputAnswer.Count == 3)
+        {
             CheckAnswer();
+        }
     }
 
     private void CheckAnswer()
     {
-        locked = true;
+        doorLocked = true;
 
-        if (inputAnswer[0] == correctAnswer[0] &&
-            inputAnswer[1] == correctAnswer[1] &&
-            inputAnswer[2] == correctAnswer[2])
+        if (inputAnswer[0] == correctAnswer[0] && inputAnswer[1] == correctAnswer[1] && inputAnswer[2] == correctAnswer[2])
         {
-            displayText.text = "✓  ✓  ✓";
+            displayText.text = "Correct";
             displayText.color = Color.green;
             door.SetActive(false);
         }
         else
         {
-            displayText.text = "✗  ✗  ✗";
+            displayText.text = "Wrong";
             displayText.color = Color.red;
-            Invoke(nameof(ResetInput), 1.2f);
+            StartCoroutine(ResetInput());
         }
     }
 
-    private void ResetInput()
+    private IEnumerator ResetInput()
     {
+        yield return new WaitForSeconds(1f);
         inputAnswer.Clear();
-        locked = false;
+        doorLocked = true;
         displayText.color = Color.white;
         UpdateDisplay();
     }
@@ -70,7 +74,9 @@ public class KeypadScript : MonoBehaviour
     {
         string[] slots = { "-", "-", "-" };
         for (int i = 0; i < inputAnswer.Count; i++)
+        {
             slots[i] = "*";
+        }
         displayText.text = string.Join("  ", slots);
     }
 
