@@ -27,7 +27,7 @@ public class KeypadScript : MonoBehaviour
             correctAnswer.Add(Random.Range(1, 10));
         }
 
-        Debug.Log($"Correct Answer: {correctAnswer[0]}-{correctAnswer[1]}-{correctAnswer[2]}");
+        Debug.Log($"The random spaghetti of the day is: {correctAnswer[0]}-{correctAnswer[1]}-{correctAnswer[2]}");
     }
 
     public void PressKey(int number)
