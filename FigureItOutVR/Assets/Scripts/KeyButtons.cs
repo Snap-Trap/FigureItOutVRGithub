@@ -1,6 +1,7 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class KeyButtons : MonoBehaviour
+public class KeyButtons : NetworkBehaviour
 {
     public int keyNumber;
 
@@ -8,7 +9,6 @@ public class KeyButtons : MonoBehaviour
 
     private void Start()
     {
-        // Walk up the hierarchy to find the KeypadScript on the parent
         keypad = GetComponentInParent<KeypadScript>();
     }
 
@@ -16,7 +16,19 @@ public class KeyButtons : MonoBehaviour
     {
         if (other.CompareTag("PlayerHand"))
         {
-            keypad.PressKey(keyNumber);
+            PressKeyServerRpc(keyNumber);
         }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void PressKeyServerRpc(int number)
+    {
+        PressKeyClientRpc(number);
+    }
+
+    [ClientRpc]
+    private void PressKeyClientRpc(int number)
+    {
+        keypad.PressKey(number);
     }
 }

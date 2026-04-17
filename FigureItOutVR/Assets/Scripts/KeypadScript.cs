@@ -2,32 +2,32 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using Unity.Netcode;
 
-public class KeypadScript : MonoBehaviour
+public class KeypadScript : NetworkBehaviour
 {
     private List<int> inputAnswer = new List<int>();
-    private List<int> correctAnswer = new List<int>();
 
-    public GameObject door;
+    private NetworkVariable<int> correctAnswer0 = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int> correctAnswer1 = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<int> correctAnswer2 = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+    public DoorController door;
     public TextMeshProUGUI displayText;
 
     private bool doorLocked = false;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        GenerateRandomAnswer();
-        UpdateDisplay();
-    }
-
-    public void GenerateRandomAnswer()
-    {
-        correctAnswer.Clear();
-        for (int i = 0; i < 3; i++)
+        if (IsServer)
         {
-            correctAnswer.Add(Random.Range(1, 10));
+            correctAnswer0.Value = Random.Range(1, 10);
+            correctAnswer1.Value = Random.Range(1, 10);
+            correctAnswer2.Value = Random.Range(1, 10);
+            Debug.Log($"The random spaghetti of the day is: {correctAnswer0.Value}-{correctAnswer1.Value}-{correctAnswer2.Value}");
         }
 
-        Debug.Log($"The random spaghetti of the day is: {correctAnswer[0]}-{correctAnswer[1]}-{correctAnswer[2]}");
+        UpdateDisplay();
     }
 
     public void PressKey(int number)
@@ -47,11 +47,13 @@ public class KeypadScript : MonoBehaviour
     {
         doorLocked = true;
 
-        if (inputAnswer[0] == correctAnswer[0] && inputAnswer[1] == correctAnswer[1] && inputAnswer[2] == correctAnswer[2])
+        if (inputAnswer[0] == correctAnswer0.Value &&
+            inputAnswer[1] == correctAnswer1.Value &&
+            inputAnswer[2] == correctAnswer2.Value)
         {
             displayText.text = "Correct";
             displayText.color = Color.green;
-            door.SetActive(false);
+            door.OpenDoor();
         }
         else
         {
@@ -65,7 +67,7 @@ public class KeypadScript : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         inputAnswer.Clear();
-        doorLocked = true;
+        doorLocked = false;
         displayText.color = Color.white;
         UpdateDisplay();
     }
@@ -80,5 +82,10 @@ public class KeypadScript : MonoBehaviour
         displayText.text = string.Join("  ", slots);
     }
 
-    public int GetCodeDigit(int index) => correctAnswer[index];
+    public int GetCodeDigit(int index)
+    {
+        if (index == 0) return correctAnswer0.Value;
+        if (index == 1) return correctAnswer1.Value;
+        return correctAnswer2.Value;
+    }
 }

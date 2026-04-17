@@ -1,6 +1,7 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class KeyNumbers : MonoBehaviour
+public class KeyNumbers : NetworkBehaviour
 {
     // DO NOT FUCKING CHANGE THIS NUMBER I DID NOT ACCOUNT FOR THAT IN THE OTHER SCRIPT I'LL KILL YOU
     public CodeDisplayNumbers[] numberObjects = new CodeDisplayNumbers[3];
@@ -8,37 +9,45 @@ public class KeyNumbers : MonoBehaviour
 
     private KeypadScript keypad;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
         keypad = FindObjectOfType<KeypadScript>();
-
         if (keypad == null) return;
-        SpawnNumbers();
+
+        if (IsServer)
+        {
+            // Pick 3 random spawn indices on the server and send to all clients
+            int[] indices = GetShuffledIndices();
+            SpawnNumbersClientRpc(indices[0], indices[1], indices[2]);
+        }
     }
 
-    private void SpawnNumbers()
+    [ClientRpc]
+    private void SpawnNumbersClientRpc(int i0, int i1, int i2)
     {
-        Transform[] shuffled = ShuffleTransforms(spawnLocations);
-
+        int[] indices = { i0, i1, i2 };
         for (int i = 0; i < 3; i++)
         {
             int digit = keypad.GetCodeDigit(i);
-            
-            numberObjects[i].transform.position = shuffled[i].position;
-            numberObjects[i].transform.rotation = shuffled[i].rotation;
+            Transform spawn = spawnLocations[indices[i]];
+            numberObjects[i].transform.position = spawn.position;
+            numberObjects[i].transform.rotation = spawn.rotation;
             numberObjects[i].SetDigit(digit);
             numberObjects[i].gameObject.SetActive(true);
         }
     }
 
-    private Transform[] ShuffleTransforms(Transform[] original)
+    private int[] GetShuffledIndices()
     {
-        Transform[] copy = (Transform[])original.Clone();
-        for (int i = copy.Length - 1; i > 0; i--)
+        int[] indices = new int[spawnLocations.Length];
+        for (int i = 0; i < indices.Length; i++) indices[i] = i;
+
+        for (int i = indices.Length - 1; i > 0; i--)
         {
             int rand = Random.Range(0, i + 1);
-            (copy[i], copy[rand]) = (copy[rand], copy[i]);
+            (indices[i], indices[rand]) = (indices[rand], indices[i]);
         }
-        return copy;
+
+        return new int[] { indices[0], indices[1], indices[2] };
     }
 }
